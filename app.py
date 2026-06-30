@@ -125,11 +125,11 @@ interval = c2.number_input(
     "Typing speed (sec/char)", 0.0, 0.5, 0.0, step=0.01,
     help="0 = instant. Raise a little if a slow form drops characters.",
 )
-auto_advance = c3.checkbox(
-    "My form auto-advances between fields", value=True,
-    help="ON: Tab is pressed ONLY after the 2nd field (to skip field 3). "
-    "OFF: Tab after every field, plus an extra Tab after field 2. "
-    "If Style and Color land in the SAME box, turn this OFF.",
+tab_after_first = c3.checkbox(
+    "Send a Tab after the Style field too", value=False,
+    help="Leave OFF: the Style box fills to its 6-character limit and the form "
+    "jumps to Color on its own. Turn ON only if Style and Color end up in the "
+    "SAME box.",
 )
 press_enter = st.checkbox("Press Enter after the last field", value=True)
 
@@ -176,7 +176,7 @@ def run_fill(indices):
             ph.info(f"Typing record {idx + 1}…")
             core.type_record(
                 records[idx],
-                auto_advance=auto_advance,
+                tab_after_first=tab_after_first,
                 press_enter=press_enter,
                 interval=float(interval),
             )

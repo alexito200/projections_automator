@@ -130,23 +130,25 @@ def parse_pasted(text: str) -> List[List[str]]:
 def type_record(
     values: List[str],
     *,
-    auto_advance: bool,
-    press_enter: bool,
+    tab_after_first: bool = False,
+    press_enter: bool = True,
     interval: float = 0.0,
 ) -> None:
     """Type one record into whatever window currently has focus.
 
-    Field mapping (your form):
-        value[0] -> field 1 (Master Style)
-        value[1] -> field 2 (Color)
-        field 3  -> SKIPPED via Tab (no data)
-        value[2:] -> field 4, 5, ... (monthly projections)
+    Field mapping for the projection form:
+        values[0]  -> Style. This box auto-advances once it is full, and the
+                      Master Style codes are always 6 characters, so by default
+                      we do NOT send a Tab after it (the form jumps on its own).
+        values[1]  -> Color -> Tab. That single Tab also lands past the
+                      non-editable Label column, onto the first month.
+        values[2:] -> the monthly fields -> a Tab between each one. The month
+                      numbers are shorter than the 6-character box limit, so
+                      they do NOT auto-advance; we must Tab ourselves.
 
-    auto_advance=True  : the form moves between fields itself; we press Tab
-                         ONLY after the 2nd field (to skip field 3). Matches
-                         "Tab only after the second field, always."
-    auto_advance=False : we drive every move -> Tab after each field, and an
-                         extra Tab after field 2 so field 3 is skipped.
+    Rule: send a Tab after every field EXCEPT the last (Enter finishes that
+    one), and except the first when tab_after_first is False. Turn
+    tab_after_first on only if a Style value ever fails to auto-advance.
     """
     if not PYAUTOGUI_OK:
         raise RuntimeError(
@@ -159,16 +161,11 @@ def type_record(
         if val != "":
             pyautogui.write(val, interval=interval)
 
-        is_last = i == n - 1
-        if auto_advance:
-            if i == 1:  # after the 2nd field -> one Tab skips field 3
-                pyautogui.press("tab")
-        else:
-            if i == 1:
-                pyautogui.press("tab")  # leave field 2
-                pyautogui.press("tab")  # skip field 3
-            elif not is_last:
-                pyautogui.press("tab")  # advance to next field
+        if i == n - 1:
+            continue  # last field: no Tab; Enter handles it below
+        if i == 0 and not tab_after_first:
+            continue  # Style auto-advances when full; don't double-advance
+        pyautogui.press("tab")
 
     if press_enter:
         pyautogui.press("enter")
