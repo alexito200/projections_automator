@@ -1,0 +1,4 @@
+streamlit>=1.30
+pyautogui>=0.9.54
+pandas>=2.0
+openpyxl>=3.1
