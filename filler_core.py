@@ -66,15 +66,37 @@ def fmt(v) -> str:
     return "" if s.lower() == "nan" else s
 
 
+def pad_ids(
+    record: List[str], style_width: int = 6, color_width: int = 3
+) -> List[str]:
+    """Restore fixed-width ID codes that Excel dropped leading zeros from.
+
+    Excel often stores codes like "023" or "010238" as plain numbers (23,
+    10238) with only a display mask, so they come out too short. The form
+    needs the Style box to be `style_width` characters and Color to be
+    `color_width` so each box fills up and auto-advances. Only all-digit
+    values are padded, so letter codes like "M57" or "41E915" are left alone.
+    """
+    rec = list(record)
+    if len(rec) >= 1 and rec[0].isdigit():
+        rec[0] = rec[0].zfill(style_width)
+    if len(rec) >= 2 and rec[1].isdigit():
+        rec[1] = rec[1].zfill(color_width)
+    return rec
+
+
 # --------------------------------------------------------------------------- #
 # Parsing
 # --------------------------------------------------------------------------- #
-def parse_excel(file, max_scan: int = 15) -> Tuple[List[str], List[List[str]]]:
+def parse_excel(
+    file, max_scan: int = 15, style_width: int = 6, color_width: int = 3
+) -> Tuple[List[str], List[List[str]]]:
     """Read an uploaded .xlsx into (headers, records).
 
     Skips any junk rows above the header (e.g. a row of date serials) by
     locating the row that contains "Master Style" (case-insensitive). Columns
-    are defined by the header cells that actually have a label.
+    are defined by the header cells that actually have a label. Style and Color
+    codes are zero-padded back to their fixed widths (see pad_ids).
     """
     raw = pd.read_excel(file, header=None, engine="openpyxl")
 
@@ -101,13 +123,16 @@ def parse_excel(file, max_scan: int = 15) -> Tuple[List[str], List[List[str]]]:
             continue  # blank row
         if vals[0] == "" and (len(vals) < 2 or vals[1] == ""):
             continue  # no Style/Color -> not a real record
-        records.append(vals)
+        records.append(pad_ids(vals, style_width, color_width))
     return headers, records
 
 
-def parse_pasted(text: str) -> List[List[str]]:
+def parse_pasted(
+    text: str, style_width: int = 6, color_width: int = 3
+) -> List[List[str]]:
     """Parse pasted text into records. Columns may be Tab- or comma-separated;
-    falls back to splitting on any whitespace."""
+    falls back to splitting on any whitespace. Style/Color are zero-padded to
+    their fixed widths (see pad_ids)."""
     lines = [ln for ln in text.splitlines() if ln.strip() != ""]
     if not lines:
         return []
@@ -120,7 +145,7 @@ def parse_pasted(text: str) -> List[List[str]]:
     rows = []
     for ln in lines:
         parts = ln.split(delim) if delim else ln.split()
-        rows.append([fmt(p.strip()) for p in parts])
+        rows.append(pad_ids([fmt(p.strip()) for p in parts], style_width, color_width))
     return rows
 
 

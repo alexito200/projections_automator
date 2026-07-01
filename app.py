@@ -66,6 +66,15 @@ method = st.radio(
     "avoids paste/column ambiguity.",
 )
 
+with st.expander("Code widths (leading-zero fix)"):
+    st.caption(
+        "Excel can drop leading zeros from all-digit codes (023 → 23), which "
+        "breaks the form. These pad them back so each box fills and advances."
+    )
+    wcol1, wcol2 = st.columns(2)
+    style_width = wcol1.number_input("Style code length", 1, 20, 6)
+    color_width = wcol2.number_input("Color code length", 1, 20, 3)
+
 records = None
 headers = None
 
@@ -73,7 +82,9 @@ if method.startswith("Upload"):
     up = st.file_uploader("Upload your projections file", type=["xlsx", "xlsm"])
     if up is not None:
         try:
-            headers, records = core.parse_excel(up)
+            headers, records = core.parse_excel(
+                up, style_width=int(style_width), color_width=int(color_width)
+            )
         except Exception as exc:
             st.error(f"Could not read that file: {exc}")
 else:
@@ -84,7 +95,9 @@ else:
     )
     skip_first = st.checkbox("First pasted row is a header (skip it)", value=False)
     if txt.strip():
-        rows = core.parse_pasted(txt)
+        rows = core.parse_pasted(
+            txt, style_width=int(style_width), color_width=int(color_width)
+        )
         if skip_first and rows:
             rows = rows[1:]
         records = rows
